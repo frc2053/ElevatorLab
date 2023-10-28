@@ -173,3 +173,4 @@ out/
 networktables.json
 simgui-ds.json
 simgui.json
+*.wpilog
