@@ -19,7 +19,7 @@ If you don't know what I mean by "elevator", I just mean a robot mechanism that 
 
 First we should make a copy of this repository to your account. We can do this through what are called git forks. A "fork" is like a git branch, but on a different account completely.
 
-1. Go to this repositories home page and click "fork" at the top of the page. Make sure you are the owner and make sure to uncheck "copy the main branch only". 
+1. Go to this repositories home page and click "fork" at the top of the page. Make sure you are the owner and make sure to check "copy the main branch only". 
 
 2. Once that is done, we can download your version of the code using git clone. 
 
@@ -51,3 +51,9 @@ For example, you could have a key called "Elevator Height" and its value could b
 The advantage of using NetworkTables for displaying information about the robot is that it allows you to view a lot of things at once without looking at the console if you were using cout or print(). Also, writing to the console is actually a "slow" operation and if you print a lot of things every iteration of the robot loop, it can actually slow down the code.
 
 You can also save all network tables entries after the robot program is done. This is automatically done in the code already. After you close the simulator, a wpilog file will be created. We will look at these files later.
+
+## Next steps
+
+Next, we will learn about the command based framework. Click here to continue:
+
+[CLICK ME](cmdBased.md)

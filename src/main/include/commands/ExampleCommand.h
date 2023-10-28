@@ -7,7 +7,7 @@
 #include <frc2/command/Command.h>
 #include <frc2/command/CommandHelper.h>
 
-#include "subsystems/ExampleSubsystem.h"
+#include "subsystems/ElevatorSubsystem.h"
 
 /**
  * An example command that uses an example subsystem.
@@ -17,15 +17,16 @@
  * Command will *not* work!
  */
 class ExampleCommand
-    : public frc2::CommandHelper<frc2::Command, ExampleCommand> {
- public:
+    : public frc2::CommandHelper<frc2::Command, ExampleCommand>
+{
+public:
   /**
    * Creates a new ExampleCommand.
    *
    * @param subsystem The subsystem used by this command.
    */
-  explicit ExampleCommand(ExampleSubsystem* subsystem);
+  explicit ExampleCommand(ElevatorSubsystem *subsystem);
 
- private:
-  ExampleSubsystem* m_subsystem;
+private:
+  ElevatorSubsystem *m_subsystem;
 };
