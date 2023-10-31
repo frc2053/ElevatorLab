@@ -98,6 +98,36 @@ void ElevatorSubsystem::ConfigureMotors()
 }
 ```
 
+Lets add some functions that convert how far the motor has rotating to how far the elevator has moved and vice-versa.
+
+Remember in physics, linear distance is equal to the radius of a circle times how far of the circle we have gone through!
+
+```cpp
+units::meter_t ElevatorSubsystem::ConvertMotorPositionToElevatorPositon(units::radian_t position)
+{
+  units::radian_t drumRadialPosition = position / ElevatorConstants::elevatorGearRatio;
+  return units::meter_t{drumRadialPosition.value() * ElevatorConstants::elevatorDrumRadius};
+}
+
+units::meters_per_second_t ElevatorSubsystem::ConvertMotorVelToElevatorVel(units::radians_per_second_t vel)
+{
+  units::radians_per_second_t drumRadialVelocity = vel / ElevatorConstants::elevatorGearRatio;
+  return units::meters_per_second_t{drumRadialVelocity.value() * ElevatorConstants::elevatorDrumRadius.value()};
+}
+
+units::radian_t ElevatorSubsystem::ConvertElevatorPositionToMotorPosition(units::meter_t position)
+{
+  units::radian_t drumRadialPosition{position.value() / ElevatorConstants::elevatorDrumRadius.value()};
+  return drumRadialPosition * ElevatorConstants::elevatorGearRatio;
+}
+
+units::radians_per_second_t ElevatorSubsystem::ConvertElevatorVelToMotorVel(units::meters_per_second_t vel)
+{
+  units::radians_per_second_t drumRadialVel{vel.value() / ElevatorConstants::elevatorDrumRadius.value()};
+  return drumRadialVel * ElevatorConstants::elevatorGearRatio;
+}
+```
+
 Next, lets write our functions to get and set the height of our elevator. Since we set up the gear ratio of our elevator before, it should be trival. 
 
 Read through the comments for more details!
