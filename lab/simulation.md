@@ -85,11 +85,7 @@ void ElevatorSubsystem::Periodic()
 
 Finally, lets try out the complete simulation!
 
-<figure class="video_container">
-  <video controls="true" allowfullscreen="true" poster="img/simresults.png">
-    <source src="img/sim-result.mp4" type="video/mp4">
-    <source src="img/sim-result.webm" type="video/webm">
-  </video>
-</figure>
+<video src="img/sim-result.mp4" type="video/mp4">
+</video>
 
 Mess with the gains and see how that effects the simulation!
