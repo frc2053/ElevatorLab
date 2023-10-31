@@ -15,6 +15,8 @@ If you don't know what I mean by "elevator", I just mean a robot mechanism that 
 ## Notes:
 - When giving instructions on what to type into a terminal window, I will use square brackets like this [USERNAME] to signify you need to use your own information for that step.
 
+- Try not to copy and paste too much. I know it might seem tempting with long sections of code, but actually typing it out will make it stick in your brain better, I promise :)
+
 ## Making a copy of this code
 
 First we should make a copy of this repository to your account. We can do this through what are called git forks. A "fork" is like a git branch, but on a different account completely.
