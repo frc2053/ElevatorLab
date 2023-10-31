@@ -14,13 +14,14 @@
 #include <frc/simulation/ElevatorSim.h>
 #include <frc/system/plant/DCMotor.h>
 #include <ctre/phoenix6/sim/TalonFXSimState.hpp>
+#include <frc/XboxController.h>
 
 struct ElevatorGains
 {
-  double kP{0.0};
+  double kP{10.0};
   double kI{0.0};
   double kD{0.0};
-  double kV{0.0};
+  double kV{3.0};
   double kA{0.0};
   double kS{0.0};
   double kG{0.0};
@@ -64,10 +65,16 @@ private:
   void SetGains(const ElevatorGains &newGains);
   ElevatorGains GetGains();
 
+  units::meter_t ConvertMotorPositionToElevatorPositon(units::radian_t position);
+  units::meters_per_second_t ConvertMotorVelToElevatorVel(units::radians_per_second_t vel);
+
+  units::radian_t ConvertElevatorPositionToMotorPosition(units::meter_t position);
+  units::radians_per_second_t ConvertElevatorVelToMotorVel(units::meters_per_second_t vel);
+
   ctre::phoenix6::hardware::TalonFX elevatorLeftMotor{ElevatorConstants::leftMotorCANId};
   ctre::phoenix6::hardware::TalonFX elevatorRightMotor{ElevatorConstants::rightMotorCANId};
 
-  ctre::phoenix6::controls::MotionMagicVoltage positionControl{0_deg, true, 0_V, 0, false};
+  ctre::phoenix6::controls::PositionVoltage positionControl{0_rad, 0_rad_per_s, true, 0_V, 0, false};
   ctre::phoenix6::StatusSignal<units::turn_t> elevatorPositionSignal{elevatorLeftMotor.GetPosition()};
   ctre::phoenix6::StatusSignal<units::turns_per_second_t> elevatorVelocitySignal{elevatorLeftMotor.GetVelocity()};
 
@@ -90,4 +97,6 @@ private:
       {0.005}};
 
   ctre::phoenix6::sim::TalonFXSimState &elevatorSimState{elevatorLeftMotor.GetSimState()};
+
+  frc::XboxController joystick{1};
 };

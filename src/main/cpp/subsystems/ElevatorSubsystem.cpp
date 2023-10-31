@@ -26,7 +26,13 @@ bool ElevatorSubsystem::ExampleCondition()
 
 void ElevatorSubsystem::Periodic()
 {
-  // Implementation of subsystem periodic method goes here.
+  // Refresh our signals from the motor controller
+  ctre::phoenix6::BaseStatusSignal::RefreshAll(elevatorPositionSignal, elevatorVelocitySignal);
+
+  units::turn_t motorPostion = ctre::phoenix6::BaseStatusSignal::GetLatencyCompensatedValue(elevatorPositionSignal, elevatorVelocitySignal);
+
+  currentPosition = ConvertMotorPositionToElevatorPositon(motorPostion);
+  currentVelocity = ConvertMotorVelToElevatorVel(elevatorVelocitySignal.GetValue());
 }
 
 void ElevatorSubsystem::SimulationPeriodic()
@@ -36,8 +42,8 @@ void ElevatorSubsystem::SimulationPeriodic()
   // Advance the simulation by 20 milliseconds. This is the same update rate as the periodic functions.
   elevatorSim.Update(20_ms);
   // Finally, update our simulated falcons encoders from the sim.
-  elevatorSimState.SetRawRotorPosition(units::turn_t{elevatorSim.GetPosition().value()});
-  elevatorSimState.SetRotorVelocity(units::turns_per_second_t{elevatorSim.GetVelocity().value()});
+  elevatorSimState.SetRawRotorPosition(ConvertElevatorPositionToMotorPosition(elevatorSim.GetPosition()));
+  elevatorSimState.SetRotorVelocity(ConvertElevatorVelToMotorVel(elevatorSim.GetVelocity()));
 }
 
 void ElevatorSubsystem::ConfigureMotors()
@@ -55,43 +61,65 @@ void ElevatorSubsystem::ConfigureMotors()
   mainConfig.Slot0.GravityType = ctre::phoenix6::signals::GravityTypeValue::Elevator_Static;
   mainConfig.Slot0.kG = currentGains.kG;
 
-  mainConfig.Feedback.SensorToMechanismRatio = ElevatorConstants::elevatorGearRatio;
+  bool setConfig = false;
+  int tries = 0;
+  while (setConfig && tries != 5)
+  {
+    ctre::phoenix::StatusCode leftStatus = elevatorLeftMotor.GetConfigurator().Apply(mainConfig);
+    ctre::phoenix::StatusCode rightStatus = elevatorRightMotor.GetConfigurator().Apply(mainConfig);
 
-  elevatorLeftMotor.GetConfigurator()
-      .Apply(mainConfig);
-  elevatorRightMotor.GetConfigurator().Apply(mainConfig);
+    // Because the other elevator motor is facing the opposite direction in our imaginary
+    // elevator, we want to make sure it always follows the left motor but in the opposite direction
+    ctre::phoenix::StatusCode followStatus = elevatorRightMotor.SetControl(ctre::phoenix6::controls::Follower{elevatorLeftMotor.GetDeviceID(), true});
 
-  // Because the other elevator motor is facing the opposite direction in our imaginary
-  // elevator, we want to make sure it always follows the left motor but in the opposite direction
-  elevatorRightMotor.SetControl(ctre::phoenix6::controls::Follower{elevatorLeftMotor.GetDeviceID(), true});
+    // Super fast refresh rate!
+    ctre::phoenix::StatusCode freqStatus = ctre::phoenix6::BaseStatusSignal::SetUpdateFrequencyForAll(1000_Hz, elevatorPositionSignal, elevatorVelocitySignal);
+    // Disable all other signals we dont care about
+    ctre::phoenix::StatusCode leftOptStatus = elevatorLeftMotor.OptimizeBusUtilization();
+    ctre::phoenix::StatusCode rightOptStatus = elevatorRightMotor.OptimizeBusUtilization();
 
-  // Super fast refresh rate!
-  ctre::phoenix6::BaseStatusSignal::SetUpdateFrequencyForAll(1000_Hz, elevatorPositionSignal, elevatorVelocitySignal);
-  // Disable all other signals we dont care about
-  elevatorLeftMotor.OptimizeBusUtilization();
-  elevatorRightMotor.OptimizeBusUtilization();
+    tries++;
+    setConfig = leftStatus.IsOK() && rightStatus.IsOK() && followStatus.IsOK() && freqStatus.IsOK() && leftOptStatus.IsOK() && rightOptStatus.IsOK();
+  }
 }
 
 void ElevatorSubsystem::GoToHeight(units::meter_t height)
 {
   currentSetpoint = height;
   // This "withX" style of code is called the builder pattern.
-  elevatorRightMotor.SetControl(positionControl.WithPosition(units::turn_t{currentSetpoint.value()}).WithEnableFOC(true).WithSlot(0));
+  units::radian_t motorSetpoint = ConvertElevatorPositionToMotorPosition(height);
+  auto &test = positionControl.WithPosition(motorSetpoint).WithEnableFOC(true).WithSlot(0);
+  fmt::print("Output: {}\n", test.ToString());
+  elevatorLeftMotor.SetControl(test);
 }
 
 units::meter_t ElevatorSubsystem::GetCurrentHeight()
 {
-  // Refresh our signals from the motor controller
-  ctre::phoenix6::BaseStatusSignal::RefreshAll(elevatorPositionSignal, elevatorVelocitySignal);
-
-  // The phoenix library returns turns of the output shaft, but we already accounted for linear height in the gear ratio,
-  // so lets just do the crappy thing and cast turns to meters.
-  units::turn_t elevatorPosition = ctre::phoenix6::BaseStatusSignal::GetLatencyCompensatedValue(elevatorPositionSignal, elevatorVelocitySignal);
-
-  currentPosition = units::meter_t{elevatorPosition.value()};
-  currentVelocity = units::meters_per_second_t{elevatorVelocitySignal.GetValue().value()};
-
   return currentPosition;
+}
+
+units::meter_t ElevatorSubsystem::ConvertMotorPositionToElevatorPositon(units::radian_t position)
+{
+  units::radian_t drumRadialPosition = position / ElevatorConstants::elevatorGearRatio;
+  return units::meter_t{drumRadialPosition.value() * ElevatorConstants::elevatorDrumRadius};
+}
+
+units::meters_per_second_t ElevatorSubsystem::ConvertMotorVelToElevatorVel(units::radians_per_second_t vel)
+{
+  units::radians_per_second_t drumRadialVelocity = vel / ElevatorConstants::elevatorGearRatio;
+  return units::meters_per_second_t{drumRadialVelocity.value() * ElevatorConstants::elevatorDrumRadius.value()};
+}
+
+units::radian_t ElevatorSubsystem::ConvertElevatorPositionToMotorPosition(units::meter_t position)
+{
+  units::radian_t drumRadialPosition{position.value() / ElevatorConstants::elevatorDrumRadius.value()};
+  return drumRadialPosition * ElevatorConstants::elevatorGearRatio;
+}
+
+units::radians_per_second_t ElevatorSubsystem::ConvertElevatorVelToMotorVel(units::meters_per_second_t vel)
+{
+  units::radians_per_second_t drumRadialVel{vel.value() / ElevatorConstants::elevatorDrumRadius.value()};
+  return drumRadialVel * ElevatorConstants::elevatorGearRatio;
 }
 
 void ElevatorSubsystem::SetGains(const ElevatorGains &newGains)
@@ -126,7 +154,7 @@ void ElevatorSubsystem::InitSendable(wpi::SendableBuilder &builder)
   builder.AddDoubleProperty(
       "Current Position (ft)",
       [this]
-      { return currentPosition.convert<units::feet>().value(); },
+      { return GetCurrentHeight().convert<units::feet>().value(); },
       nullptr);
   builder.AddDoubleProperty(
       "Current Velocity (ft per sec)",
