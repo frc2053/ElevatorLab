@@ -31,7 +31,13 @@ void ElevatorSubsystem::Periodic()
 
 void ElevatorSubsystem::SimulationPeriodic()
 {
-  // Implementation of subsystem simulation periodic method goes here.
+  // Our elevator simulator takes in the applied motor voltage as input in a 1x1 matrix
+  elevatorSim.SetInput(frc::Vectord<1>{elevatorSimState.GetMotorVoltage().value()});
+  // Advance the simulation by 20 milliseconds. This is the same update rate as the periodic functions.
+  elevatorSim.Update(20_ms);
+  // Finally, update our simulated falcons encoders from the sim.
+  elevatorSimState.SetRawRotorPosition(units::turn_t{elevatorSim.GetPosition().value()});
+  elevatorSimState.SetRotorVelocity(units::turns_per_second_t{elevatorSim.GetVelocity().value()});
 }
 
 void ElevatorSubsystem::ConfigureMotors()

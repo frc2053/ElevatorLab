@@ -11,6 +11,9 @@
 #include <units/length.h>
 #include <units/velocity.h>
 #include <wpi/sendable/Sendable.h>
+#include <frc/simulation/ElevatorSim.h>
+#include <frc/system/plant/DCMotor.h>
+#include <ctre/phoenix6/sim/TalonFXSimState.hpp>
 
 struct ElevatorGains
 {
@@ -73,4 +76,18 @@ private:
   units::meters_per_second_t currentVelocity{0};
 
   ElevatorGains currentGains{};
+
+  frc::DCMotor elevatorGearbox{frc::DCMotor::Falcon500FOC(2)};
+  frc::sim::ElevatorSim elevatorSim{
+      elevatorGearbox,
+      ElevatorConstants::elevatorGearRatio,
+      ElevatorConstants::elevatorCarriageMass,
+      ElevatorConstants::elevatorDrumRadius,
+      ElevatorConstants::elevatorMinHeight,
+      ElevatorConstants::elevatorMaxHeight,
+      true,
+      0_m,
+      {0.005}};
+
+  ctre::phoenix6::sim::TalonFXSimState &elevatorSimState{elevatorLeftMotor.GetSimState()};
 };
