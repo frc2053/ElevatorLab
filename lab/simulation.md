@@ -85,7 +85,8 @@ void ElevatorSubsystem::Periodic()
 
 Finally, lets try out the complete simulation!
 
-<video src="img/sim-result.mp4" type="video/mp4">
-</video>
+https://github.com/frc2053/ElevatorLab/assets/6174102/a7d08376-8fda-405f-a6ff-482984865d1f
 
 Mess with the gains and see how that effects the simulation!
+
+
