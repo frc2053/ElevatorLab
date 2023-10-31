@@ -6,6 +6,22 @@
 
 #include <frc2/command/CommandPtr.h>
 #include <frc2/command/SubsystemBase.h>
+#include <ctre/phoenix6/TalonFX.hpp>
+#include "Constants.h"
+#include <units/length.h>
+#include <units/velocity.h>
+#include <wpi/sendable/Sendable.h>
+
+struct ElevatorGains
+{
+  double kP{0.0};
+  double kI{0.0};
+  double kD{0.0};
+  double kV{0.0};
+  double kA{0.0};
+  double kS{0.0};
+  double kG{0.0};
+};
 
 class ElevatorSubsystem : public frc2::SubsystemBase
 {
@@ -36,7 +52,25 @@ public:
    */
   void SimulationPeriodic() override;
 
+  void GoToHeight(units::meter_t height);
+  units::meter_t GetCurrentHeight();
+
 private:
-  // Components (e.g. motor controllers and sensors) should generally be
-  // declared private and exposed only through public methods.
+  void ConfigureMotors();
+  void InitSendable(wpi::SendableBuilder &builder) override;
+  void SetGains(const ElevatorGains &newGains);
+  ElevatorGains GetGains();
+
+  ctre::phoenix6::hardware::TalonFX elevatorLeftMotor{ElevatorConstants::leftMotorCANId};
+  ctre::phoenix6::hardware::TalonFX elevatorRightMotor{ElevatorConstants::rightMotorCANId};
+
+  ctre::phoenix6::controls::MotionMagicVoltage positionControl{0_deg, true, 0_V, 0, false};
+  ctre::phoenix6::StatusSignal<units::turn_t> elevatorPositionSignal{elevatorLeftMotor.GetPosition()};
+  ctre::phoenix6::StatusSignal<units::turns_per_second_t> elevatorVelocitySignal{elevatorLeftMotor.GetVelocity()};
+
+  units::meter_t currentSetpoint{0};
+  units::meter_t currentPosition{0};
+  units::meters_per_second_t currentVelocity{0};
+
+  ElevatorGains currentGains{};
 };

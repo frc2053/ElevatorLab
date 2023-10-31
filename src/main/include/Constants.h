@@ -14,8 +14,16 @@
  * they are needed.
  */
 
-namespace OperatorConstants {
+namespace OperatorConstants
+{
 
-constexpr int kDriverControllerPort = 0;
+    constexpr int kDriverControllerPort = 0;
 
-}  // namespace OperatorConstants
+} // namespace OperatorConstants
+
+namespace ElevatorConstants
+{
+    static constexpr int leftMotorCANId{2};
+    static constexpr int rightMotorCANId{3};
+    static constexpr double elevatorGearRatio{5.5};
+}

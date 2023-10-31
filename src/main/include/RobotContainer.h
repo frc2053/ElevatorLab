@@ -30,7 +30,7 @@ private:
       OperatorConstants::kDriverControllerPort};
 
   // The robot's subsystems are defined here...
-  ElevatorSubsystem m_subsystem;
+  ElevatorSubsystem elevatorSubsystem;
 
   void ConfigureBindings();
 };
