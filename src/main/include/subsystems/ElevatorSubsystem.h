@@ -15,6 +15,8 @@
 #include <frc/system/plant/DCMotor.h>
 #include <ctre/phoenix6/sim/TalonFXSimState.hpp>
 #include <frc/XboxController.h>
+#include <frc/smartdashboard/Mechanism2d.h>
+#include <frc/smartdashboard/MechanismLigament2d.h>
 
 struct ElevatorGains
 {
@@ -98,5 +100,11 @@ private:
 
   ctre::phoenix6::sim::TalonFXSimState &elevatorSimState{elevatorLeftMotor.GetSimState()};
 
-  frc::XboxController joystick{1};
+  // Create a Mechanism2d display of an elevator
+  frc::Mechanism2d mech2d{10_in / 1_m, 73_in / 1_m};
+  frc::MechanismRoot2d *elevatorRoot =
+      mech2d.GetRoot("Elevator Root", 5_in / 1_m, 0.0_in / 1_m);
+  frc::MechanismLigament2d *elevatorMech2d =
+      elevatorRoot->Append<frc::MechanismLigament2d>(
+          "Elevator", elevatorSim.GetPosition().value(), 90_deg);
 };

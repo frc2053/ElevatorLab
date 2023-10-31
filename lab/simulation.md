@@ -40,11 +40,56 @@ Lets add this code to the SimulationPeriodic function in ElevatorSubsystem.cpp
 Take a look through the comments to understand what is going on.
 
 ```cpp
-// Our elevator simulator takes in the applied motor voltage as input in a 1x1 matrix
-elevatorSim.SetInput(frc::Vectord<1>{elevatorSimState.GetMotorVoltage().value()});
-// Advance the simulation by 20 milliseconds. This is the same update rate as the periodic functions.
-elevatorSim.Update(20_ms);
-// Finally, update our simulated falcons encoders from the sim.
-elevatorSimState.SetRawRotorPosition(units::turn_t{elevatorSim.GetPosition().value()});
-elevatorSimState.SetRotorVelocity(units::turns_per_second_t{elevatorSim.GetVelocity().value()});
+  // Our elevator simulator takes in the applied motor voltage as input in a 1x1 matrix
+  elevatorSim.SetInput(frc::Vectord<1>{elevatorSimState.GetMotorVoltage().value()});
+  // Advance the simulation by 20 milliseconds. This is the same update rate as the periodic functions.
+  elevatorSim.Update(20_ms);
+  // Finally, update our simulated falcons encoders from the sim.
+  elevatorSimState.SetRawRotorPosition(ConvertElevatorPositionToMotorPosition(elevatorSim.GetPosition()));
+  elevatorSimState.SetRotorVelocity(ConvertElevatorVelToMotorVel(elevatorSim.GetVelocity()));
 ```
+
+Finally, lets add a little visualizer so we arent just look at numbers on the dashboard
+
+```cpp
+// Add these variables to the private member variables in ElevatorSubsystem.h
+
+// Create a Mechanism2d display of an elevator
+frc::Mechanism2d mech2d{10_in / 1_m, 73_in / 1_m};
+frc::MechanismRoot2d* elevatorRoot =
+    mech2d.GetRoot("Elevator Root", 5_in / 1_m, 0.5_in / 1_m);
+frc::MechanismLigament2d* elevatorMech2d =
+    elevatorRoot->Append<frc::MechanismLigament2d>(
+        "Elevator", elevatorSim.GetPosition().value(), 90_deg);
+```
+
+In the constructor we can put the visualizer on the dashboard..
+
+```cpp
+ElevatorSubsystem::ElevatorSubsystem()
+{
+  //....
+  frc::SmartDashboard::PutData("Elevator Vis", &mech2d);
+}
+```
+
+Then in the periodic function we need to update the length of our elevator vis.. 
+
+```cpp
+void ElevatorSubsystem::Periodic()
+{
+  //....
+  elevatorMech2d->SetLength(currentPosition.value());
+}
+```
+
+Finally, lets try out the complete simulation!
+
+<figure class="video_container">
+  <video controls="true" allowfullscreen="true" poster="img/simresults.png">
+    <source src="img/sim-result.mp4" type="video/mp4">
+    <source src="img/sim-result.webm" type="video/webm">
+  </video>
+</figure>
+
+Mess with the gains and see how that effects the simulation!

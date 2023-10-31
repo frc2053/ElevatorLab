@@ -24,6 +24,12 @@ In ElevatorSubsystem.h add these functions and class variables
   void SetGains(const ElevatorGains &newGains);
   ElevatorGains GetGains();
 
+  units::meter_t ConvertMotorPositionToElevatorPositon(units::radian_t position);
+  units::meters_per_second_t ConvertMotorVelToElevatorVel(units::radians_per_second_t vel);
+
+  units::radian_t ConvertElevatorPositionToMotorPosition(units::meter_t position);
+  units::radians_per_second_t ConvertElevatorVelToMotorVel(units::meters_per_second_t vel);
+
   ctre::phoenix6::hardware::TalonFX elevatorLeftMotor{ElevatorConstants::leftMotorCANId};
   ctre::phoenix6::hardware::TalonFX elevatorRightMotor{ElevatorConstants::rightMotorCANId};
 
@@ -45,8 +51,6 @@ You'll also have to put `#include <units/length.h>` and `#include <units/velocit
 Ok lets move to our cpp file and actually write these functions.
 
 Lets do the motor configuration first. Don't worry about a lot of this stuff as it is specific to the Phoenix library and not important for this lesson. 
-
-Do take a look at how we define SesorToMechanismRatio. This is important as it holds the gear ratio from the elevator motor to the output shaft of the elevator. We need this because our sensor that tells where the motor is is on the motor, not the output shaft of the elevator. So now our units will be correct when we get the position of the motor.
 
 Dont forget to add this to your constants file in the elevator namespace!
 
@@ -79,8 +83,6 @@ void ElevatorSubsystem::ConfigureMotors()
   mainConfig.Slot0.GravityType = ctre::phoenix6::signals::GravityTypeValue::Elevator_Static;
   mainConfig.Slot0.kG = kG;
 
-  mainConfig.Feedback.SensorToMechanismRatio = ElevatorConstants::elevatorGearRatio;
-
   elevatorLeftMotor.GetConfigurator().Apply(mainConfig);
   elevatorRightMotor.GetConfigurator().Apply(mainConfig);
 
@@ -101,25 +103,27 @@ Next, lets write our functions to get and set the height of our elevator. Since 
 Read through the comments for more details!
 
 ```cpp
-void ElevatorSubsystem::GoToHeight(units::meter_t height)
-{
-  currentSetpoint = height;
-  // This "withX" style of code is called the builder pattern.
-  elevatorRightMotor.SetControl(positionControl.WithPosition(units::turn_t{currentSetpoint.value()}).WithEnableFOC(true).WithSlot(0));
-}
-
-units::meter_t ElevatorSubsystem::GetCurrentHeight()
+void ElevatorSubsystem::Periodic()
 {
   // Refresh our signals from the motor controller
   ctre::phoenix6::BaseStatusSignal::RefreshAll(elevatorPositionSignal, elevatorVelocitySignal);
 
-  // The phoenix library returns turns of the output shaft, but we already accounted for linear height in the gear ratio,
-  // so lets just do the crappy thing and cast turns to meters.
-  units::turn_t elevatorPosition = ctre::phoenix6::BaseStatusSignal::GetLatencyCompensatedValue(elevatorPositionSignal, elevatorVelocitySignal);
+  units::turn_t motorPostion = ctre::phoenix6::BaseStatusSignal::GetLatencyCompensatedValue(elevatorPositionSignal, elevatorVelocitySignal);
 
-  currentPosition = units::meter_t{elevatorPosition.value()};
-  currentVelocity = units::meters_per_second_t{elevatorVelocitySignal.GetValue().value()};
+  currentPosition = ConvertMotorPositionToElevatorPositon(motorPostion);
+  currentVelocity = ConvertMotorVelToElevatorVel(elevatorVelocitySignal.GetValue());
+}
 
+void ElevatorSubsystem::GoToHeight(units::meter_t height)
+{
+  currentSetpoint = height;
+  // This "withX" style of code is called the builder pattern.
+  units::radian_t motorSetpoint = ConvertElevatorPositionToMotorPosition(height);
+  elevatorLeftMotor.SetControl(positionControl.WithPosition(motorSetpoint).WithEnableFOC(true).WithSlot(0););
+}
+
+units::meter_t ElevatorSubsystem::GetCurrentHeight()
+{
   return currentPosition;
 }
 ```
@@ -130,10 +134,10 @@ Ok that wasn't too bad. Lets add our final couple functions for now, and add som
 // Before the class in ElevatorSubsystem.h...
 struct ElevatorGains
 {
-  double kP{0.0};
+  double kP{10.0};
   double kI{0.0};
   double kD{0.0};
-  double kV{0.0};
+  double kV{3.0};
   double kA{0.0};
   double kS{0.0};
   double kG{0.0};

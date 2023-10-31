@@ -9,6 +9,7 @@ ElevatorSubsystem::ElevatorSubsystem()
 {
   ConfigureMotors();
   frc::SmartDashboard::PutData("Elevator Telemetry", this);
+  frc::SmartDashboard::PutData("Elevator Vis", &mech2d);
 }
 
 frc2::CommandPtr ElevatorSubsystem::ExampleMethodCommand()
@@ -33,6 +34,8 @@ void ElevatorSubsystem::Periodic()
 
   currentPosition = ConvertMotorPositionToElevatorPositon(motorPostion);
   currentVelocity = ConvertMotorVelToElevatorVel(elevatorVelocitySignal.GetValue());
+
+  elevatorMech2d->SetLength(currentPosition.value());
 }
 
 void ElevatorSubsystem::SimulationPeriodic()
@@ -61,26 +64,18 @@ void ElevatorSubsystem::ConfigureMotors()
   mainConfig.Slot0.GravityType = ctre::phoenix6::signals::GravityTypeValue::Elevator_Static;
   mainConfig.Slot0.kG = currentGains.kG;
 
-  bool setConfig = false;
-  int tries = 0;
-  while (setConfig && tries != 5)
-  {
-    ctre::phoenix::StatusCode leftStatus = elevatorLeftMotor.GetConfigurator().Apply(mainConfig);
-    ctre::phoenix::StatusCode rightStatus = elevatorRightMotor.GetConfigurator().Apply(mainConfig);
+  elevatorLeftMotor.GetConfigurator().Apply(mainConfig);
+  elevatorRightMotor.GetConfigurator().Apply(mainConfig);
 
-    // Because the other elevator motor is facing the opposite direction in our imaginary
-    // elevator, we want to make sure it always follows the left motor but in the opposite direction
-    ctre::phoenix::StatusCode followStatus = elevatorRightMotor.SetControl(ctre::phoenix6::controls::Follower{elevatorLeftMotor.GetDeviceID(), true});
+  // Because the other elevator motor is facing the opposite direction in our imaginary
+  // elevator, we want to make sure it always follows the left motor but in the opposite direction
+  elevatorRightMotor.SetControl(ctre::phoenix6::controls::Follower{elevatorLeftMotor.GetDeviceID(), true});
 
-    // Super fast refresh rate!
-    ctre::phoenix::StatusCode freqStatus = ctre::phoenix6::BaseStatusSignal::SetUpdateFrequencyForAll(1000_Hz, elevatorPositionSignal, elevatorVelocitySignal);
-    // Disable all other signals we dont care about
-    ctre::phoenix::StatusCode leftOptStatus = elevatorLeftMotor.OptimizeBusUtilization();
-    ctre::phoenix::StatusCode rightOptStatus = elevatorRightMotor.OptimizeBusUtilization();
-
-    tries++;
-    setConfig = leftStatus.IsOK() && rightStatus.IsOK() && followStatus.IsOK() && freqStatus.IsOK() && leftOptStatus.IsOK() && rightOptStatus.IsOK();
-  }
+  // Super fast refresh rate!
+  ctre::phoenix6::BaseStatusSignal::SetUpdateFrequencyForAll(1000_Hz, elevatorPositionSignal, elevatorVelocitySignal);
+  // Disable all other signals we dont care about
+  elevatorLeftMotor.OptimizeBusUtilization();
+  elevatorRightMotor.OptimizeBusUtilization();
 }
 
 void ElevatorSubsystem::GoToHeight(units::meter_t height)
@@ -88,9 +83,7 @@ void ElevatorSubsystem::GoToHeight(units::meter_t height)
   currentSetpoint = height;
   // This "withX" style of code is called the builder pattern.
   units::radian_t motorSetpoint = ConvertElevatorPositionToMotorPosition(height);
-  auto &test = positionControl.WithPosition(motorSetpoint).WithEnableFOC(true).WithSlot(0);
-  fmt::print("Output: {}\n", test.ToString());
-  elevatorLeftMotor.SetControl(test);
+  elevatorLeftMotor.SetControl(positionControl.WithPosition(motorSetpoint).WithEnableFOC(true).WithSlot(0));
 }
 
 units::meter_t ElevatorSubsystem::GetCurrentHeight()

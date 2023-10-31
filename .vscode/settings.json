@@ -17,6 +17,7 @@
   "C_Cpp.default.configurationProvider": "vscode-wpilib",
   "files.associations": {
     "utility": "cpp",
-    "regex": "cpp"
+    "regex": "cpp",
+    "bitset": "cpp"
   }
 }
