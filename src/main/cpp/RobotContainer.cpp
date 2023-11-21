@@ -29,6 +29,16 @@ void RobotContainer::ConfigureBindings()
   // Schedule `ExampleMethodCommand` when the Xbox controller's B button is
   // pressed, cancelling on release.
   m_driverController.B().WhileTrue(elevatorSubsystem.ExampleMethodCommand());
+
+  m_driverController.A().OnTrue(elevatorSubsystem.GoToHeightCommand([] {
+    return 30_in;
+  }));
+
+  m_driverController.X().OnTrue(elevatorSubsystem.GoToHeightCommand([] {
+    return 0_in;
+  }));
+
+  m_driverController.Y().OnTrue(elevatorSubsystem.GoToHeightCommand2([] {return 45_in;}, []{return 15_in;}));
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand()

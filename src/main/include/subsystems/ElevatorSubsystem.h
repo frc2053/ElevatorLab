@@ -17,6 +17,10 @@
 #include <frc/XboxController.h>
 #include <frc/smartdashboard/Mechanism2d.h>
 #include <frc/smartdashboard/MechanismLigament2d.h>
+#include <frc2/command/InstantCommand.h>
+#include <frc2/command/WaitUntilCommand.h>
+#include <frc2/command/Commands.h>
+#include <units/time.h>
 
 struct ElevatorGains
 {
@@ -33,6 +37,8 @@ class ElevatorSubsystem : public frc2::SubsystemBase
 {
 public:
   ElevatorSubsystem();
+
+
 
   /**
    * Example command factory method.
@@ -60,6 +66,38 @@ public:
 
   void GoToHeight(units::meter_t height);
   units::meter_t GetCurrentHeight();
+
+  bool IsElevatorAtSetpoint();
+
+  frc2::CommandPtr GoToHeightCommand(std::function<units::meter_t()> height) {
+    return frc2::cmd::Sequence(
+      frc2::cmd::RunOnce([height, this] {
+        GoToHeight(height());
+      }, {this}),
+      frc2::cmd::WaitUntil([this] {
+        return IsElevatorAtSetpoint();
+      })
+    );
+  };
+
+  frc2::CommandPtr GoToHeightCommand2(std::function<units::meter_t()> height, std::function<units::meter_t()> height2) {
+    return frc2::cmd::Sequence(
+      frc2::cmd::RunOnce([height, this] {
+        GoToHeight(height());
+      }, {this}),
+      frc2::cmd::WaitUntil([this] {
+        return IsElevatorAtSetpoint();
+      }),
+      frc2::cmd::Wait(2_s), 
+      frc2::cmd::RunOnce([height2, this] {
+        GoToHeight(height2());
+      }, {this}),
+      frc2::cmd::WaitUntil([this] {
+        return IsElevatorAtSetpoint();
+      }),
+      frc2::cmd::Wait(2_s)
+    );
+  };
 
 private:
   void ConfigureMotors();
@@ -107,4 +145,6 @@ private:
   frc::MechanismLigament2d *elevatorMech2d =
       elevatorRoot->Append<frc::MechanismLigament2d>(
           "Elevator", elevatorSim.GetPosition().value(), 90_deg);
+
+  
 };

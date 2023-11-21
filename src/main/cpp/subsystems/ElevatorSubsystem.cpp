@@ -115,6 +115,10 @@ units::radians_per_second_t ElevatorSubsystem::ConvertElevatorVelToMotorVel(unit
   return drumRadialVel * ElevatorConstants::elevatorGearRatio;
 }
 
+bool ElevatorSubsystem::IsElevatorAtSetpoint() {
+  return units::math::abs(currentSetpoint - GetCurrentHeight()) < 1_in;
+}
+
 void ElevatorSubsystem::SetGains(const ElevatorGains &newGains)
 {
   currentGains = newGains;
